@@ -18,7 +18,7 @@
     <button id="undo" title="Undo (Ctrl+Z)">↶ Undo</button>
     <button id="redo" title="Redo (Ctrl+Y)">↷ Redo</button>
     <button id="tidy" title="Snap all shapes to the grid and straighten lines">✨ Tidy all</button>
-    <button id="clear">Clear</button>
+    <button id="clear">Clear page</button>
     <span class="zoom"><button id="zout">−</button><span id="zlabel">100%</span><button id="zin">+</button><button id="zfit" title="Fit A4 page in view">⌂ Fit page</button></span>
   </header>
 
@@ -27,6 +27,7 @@
   <main>
     <canvas id="c"></canvas>
     <div id="hint">Draw a rough shape with the <b>pen</b> — it is straightened automatically.<br>Use <b>T</b> for labels (LaTeX math like <code>$x^2$</code> works).<br>Press <b>V</b> and click or drag a box around elements to change their properties.</div>
+    <div id="pagebar"></div>
     <div id="warn">⚠ Some elements are outside the page margins</div>
     <div id="inspector">
       <div class="ititle" id="ititle">New elements</div>
@@ -48,6 +49,7 @@
         <label class="chk">Text <select id="sSize"><option value="0">small</option><option value="1">normal</option><option value="2">large</option><option value="3">Large</option><option value="4">huge</option></select></label>
       </div>
       <div class="row" id="textrow"><input id="sText" type="text" placeholder="label text" spellcheck="false"></div>
+      <div class="row" id="rotrow"><span class="ititle">Rotate</span><button id="rL" title="Rotate 90° counter-clockwise ( Shift+[ )">⟲ 90°</button><button id="rR" title="Rotate 90° clockwise ( Shift+] )">⟳ 90°</button><label class="chk"><input type="number" id="sRot" step="1" style="width:62px" title="Angle in degrees (clockwise). Drag the round handle above the selection, or use [ and ] for 15° steps"> °</label></div>
       <div class="row" id="selrow">
         <button id="bDup" title="Duplicate (Ctrl+D)">Duplicate</button>
         <button id="bFront" title="Bring to front">Front</button>
@@ -55,6 +57,7 @@
         <button id="bDel" title="Delete (Del)">Delete</button>
       </div>
     </div>
+    <div id="lib" style="display:none"><input id="libq" type="text" placeholder="Search shapes…" spellcheck="false"><div id="libbody"></div></div>
     <input id="textin" type="text" autocomplete="off" spellcheck="false">
   </main>
 
@@ -65,7 +68,7 @@
       <button id="compile">Compile</button><select id="pzoom" title="Preview zoom"><option value="100">Fit</option><option value="150">150%</option><option value="200">200%</option><option value="300">300%</option></select><button id="pdfopen" title="Open the real PDF in a new tab">Open PDF</button>
     </div>
     <div id="pdfbox">
-      <div id="pdfscroll"><img id="pdf" alt="PDF preview"></div>
+      <div id="pdfscroll"><div id="pdfpages"></div></div>
       <pre id="pdflog"></pre>
     </div>
     <div class="oh"><b>TikZ code</b>
@@ -83,6 +86,7 @@
   <input type="hidden" name="encoded_snip" id="ovlsnip">
 </form>
 <script src="geometry.js"></script>
+<script src="shapes.js"></script>
 <script src="tikz.js"></script>
 <script src="app.js"></script>
 </body>

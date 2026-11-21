@@ -18,10 +18,11 @@ function compile(tex, png, cb) {
         cb(err && !pdf ? extra : { pdf: out });
       };
       if (pdf && png) {
-        return execFile('pdftoppm', ['-png', '-r', '200', '-singlefile', 'drawing.pdf', 'page'], { cwd: dir, timeout: 20000 }, (e2) => {
-          let img = null; try { img = fs.readFileSync(path.join(dir, 'page.png')); } catch (e) {}
+        return execFile('pdftoppm', ['-png', '-r', '200', 'drawing.pdf', 'page'], { cwd: dir, timeout: 60000 }, () => {
+          const files = fs.readdirSync(dir).filter((f) => /^page-\d+\.png$/.test(f)).sort((a, b) => parseInt(a.slice(5)) - parseInt(b.slice(5)));
+          const pages = files.map((f) => 'data:image/png;base64,' + fs.readFileSync(path.join(dir, f)).toString('base64'));
           fs.rm(dir, { recursive: true, force: true }, () => {});
-          cb(img ? { pdf: img, png: true } : { error: 'pdftoppm failed – install poppler-utils' });
+          cb(pages.length ? { pdf: Buffer.from(JSON.stringify({ pages })), json: true } : { error: 'pdftoppm failed – install poppler-utils' });
         });
       }
       done(pdf, !err ? null : { error: err.code === 'ENOENT' ? 'pdflatex not found – install TeX Live' : stdout.split('\n').filter((l) => /^!|^l\.\d|Error/.test(l)).join('\n') || String(err.message) });
@@ -33,7 +34,7 @@ http.createServer((req, res) => {
     let body = '';
     req.on('data', (d) => { body += d; if (body.length > 2e6) req.destroy(); });
     req.on('end', () => compile(body, req.url.includes('format=png'), (r) => {
-      if (r.pdf) { res.writeHead(200, { 'Content-Type': r.png ? 'image/png' : 'application/pdf' }); res.end(r.pdf); }
+      if (r.pdf) { res.writeHead(200, { 'Content-Type': r.json ? 'application/json' : 'application/pdf' }); res.end(r.pdf); }
       else { res.writeHead(422, { 'Content-Type': 'text/plain' }); res.end(r.error); }
     }));
     return;
