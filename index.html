@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sketch to TikZ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <b class="brand">Sketch → TikZ</b>
+    <label class="chk" title="Straighten lines, turn rough boxes/circles into exact shapes"><input type="checkbox" id="optFix" checked> Auto-fix shapes</label>
+    <label class="chk" title="Snap everything to a 0.5 cm grid"><input type="checkbox" id="optSnap" checked> Snap to grid</label>
+    <label class="chk">Grid <select id="optGrid"><option value="10">0.25 cm</option><option value="20" selected>0.5 cm</option><option value="40">1 cm</option><option value="80">2 cm</option></select></label>
+    <label class="chk">Page <select id="optOri"><option value="p">A4 portrait</option><option value="l">A4 landscape</option></select></label>
+    <span class="sp"></span>
+    <button id="undo" title="Undo (Ctrl+Z)">↶ Undo</button>
+    <button id="redo" title="Redo (Ctrl+Y)">↷ Redo</button>
+    <button id="tidy" title="Snap all shapes to the grid and straighten lines">✨ Tidy all</button>
+    <button id="clear">Clear</button>
+    <span class="zoom"><button id="zout">−</button><span id="zlabel">100%</span><button id="zin">+</button><button id="zfit" title="Fit A4 page in view">⌂ Fit page</button></span>
+  </header>
+
+  <aside id="tools"></aside>
+
+  <main>
+    <canvas id="c"></canvas>
+    <div id="hint">Draw a rough shape with the <b>pen</b> — it is straightened automatically.<br>Use <b>T</b> for labels (LaTeX math like <code>$x^2$</code> works).<br>Press <b>V</b> and click or drag a box around elements to change their properties.</div>
+    <div id="warn">⚠ Some elements are outside the page margins</div>
+    <div id="inspector">
+      <div class="ititle" id="ititle">New elements</div>
+      <div class="row" id="colors"></div>
+      <div class="row">
+        <button data-lw="1" title="Thin">╌</button><button data-lw="2" title="Thick">━</button><button data-lw="3" title="Very thick">▬</button>
+        <span class="sep"></span>
+        <button id="sDash" title="Dashed">- - -</button>
+        <button id="sFill" title="Light fill (closed shapes)">Fill</button>
+        <button id="sRound" title="Rounded corners (rectangles)">Round</button>
+      </div>
+      <div class="row" id="oprow"><label class="chk" title="How see-through the fill is">Fill opacity <input type="range" id="sOp" min="5" max="100" step="5" value="30"> <span id="sOpv">30%</span></label></div>
+      <div class="row" id="routerow">
+        <label class="chk">Path <select id="sRoute"><option value="straight">straight</option><option value="bendL">curved (left)</option><option value="bendR">curved (right)</option><option value="hv">elbow: horizontal first</option><option value="vh">elbow: vertical first</option></select></label>
+        <label class="chk" id="bendlbl">Bend <input type="range" id="sBend" min="10" max="80" step="5" value="30" style="width:80px"></label>
+      </div>
+      <div class="row">
+        <label class="chk">Arrow <select id="sArrow"><option value="">none</option><option value="->">end →</option><option value="<-">start ←</option><option value="<->">both ↔</option></select></label>
+        <label class="chk">Text <select id="sSize"><option value="0">small</option><option value="1">normal</option><option value="2">large</option><option value="3">Large</option><option value="4">huge</option></select></label>
+      </div>
+      <div class="row" id="textrow"><input id="sText" type="text" placeholder="label text" spellcheck="false"></div>
+      <div class="row" id="selrow">
+        <button id="bDup" title="Duplicate (Ctrl+D)">Duplicate</button>
+        <button id="bFront" title="Bring to front">Front</button>
+        <button id="bBack" title="Send to back">Back</button>
+        <button id="bDel" title="Delete (Del)">Delete</button>
+      </div>
+    </div>
+    <input id="textin" type="text" autocomplete="off" spellcheck="false">
+  </main>
+
+  <section id="out">
+    <div class="oh"><b>PDF preview</b>
+      <span id="pdfstatus">…</span>
+      <label class="chk"><input type="checkbox" id="optAuto" checked> Auto</label>
+      <button id="compile">Compile</button><select id="pzoom" title="Preview zoom"><option value="100">Fit</option><option value="150">150%</option><option value="200">200%</option><option value="300">300%</option></select><button id="pdfopen" title="Open the real PDF in a new tab">Open PDF</button>
+    </div>
+    <div id="pdfbox">
+      <div id="pdfscroll"><img id="pdf" alt="PDF preview"></div>
+      <pre id="pdflog"></pre>
+    </div>
+    <div class="oh"><b>TikZ code</b>
+      <label class="chk"><input type="checkbox" id="optFull" checked> Full document</label>
+    </div>
+    <textarea id="code" readonly spellcheck="false"></textarea>
+    <div class="ob">
+      <button id="copy" class="primary">Copy code</button>
+      <button id="dl">Download .tex</button>
+      <button id="ovl" title="Opens a new Overleaf project with this code">Open in Overleaf</button>
+    </div>
+  </section>
+</div>
+<form id="ovlform" action="https://www.overleaf.com/docs" method="post" target="_blank" style="display:none">
+  <input type="hidden" name="encoded_snip" id="ovlsnip">
+</form>
+<script src="geometry.js"></script>
+<script src="tikz.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
