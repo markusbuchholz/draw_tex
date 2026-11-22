@@ -60,6 +60,39 @@
   const andBody = () => [{ closed: true, segs: [['M', 0.2, 0], ['L', 0.5, 0], ['C', 0.85, 0, 0.85, 1, 0.5, 1], ['L', 0.2, 1]] }];
   const orBody = () => [{ closed: true, segs: [['M', 0.2, 0], ['C', 0.5, 0, 0.72, 0.12, 0.82, 0.5], ['C', 0.72, 0.88, 0.5, 1, 0.2, 1], ['C', 0.32, 0.7, 0.32, 0.3, 0.2, 0]] }];
 
+  // elliptical arc as cubic segments (no leading M); angles in radians, clockwise on screen
+  const arcSegs = (cx, cy, rx, ry, s, e) => {
+    const n = Math.max(1, Math.ceil(Math.abs(e - s) / (Math.PI / 2) - 1e-9)), d = (e - s) / n, k = (4 / 3) * Math.tan(d / 4), out = [];
+    for (let j = 0; j < n; j++) {
+      const t0 = s + j * d, t1 = t0 + d;
+      out.push(['C', cx + rx * Math.cos(t0) - k * rx * Math.sin(t0), cy + ry * Math.sin(t0) + k * ry * Math.cos(t0), cx + rx * Math.cos(t1) + k * rx * Math.sin(t1), cy + ry * Math.sin(t1) - k * ry * Math.cos(t1), cx + rx * Math.cos(t1), cy + ry * Math.sin(t1)]);
+    }
+    return out;
+  };
+  const arcPt = (cx, cy, rx, ry, a) => [cx + rx * Math.cos(a), cy + ry * Math.sin(a)];
+  const P2 = Math.PI * 2;
+  const starN = (n, inner, cy = 0.5) => poly(Array.from({ length: 2 * n }, (_, i) => { const a = -Math.PI / 2 + (i * Math.PI) / n, r = i % 2 ? inner * 0.5 : 0.5; return [0.5 + r * Math.cos(a), cy + r * Math.sin(a)]; }));
+  const ring = (ro, ri) => [{ closed: true, segs: [['M', 0.5 + ro, 0.5]].concat(arcSegs(0.5, 0.5, ro, ro, 0, P2)) }, { closed: true, segs: [['M', 0.5 + ri, 0.5]].concat(arcSegs(0.5, 0.5, ri, ri, P2, 0)) }];
+  // 3D solids drawn as oblique projections
+  const cube = () => { const d = 0.3, x = 1 - d, y = d; return [poly([[0, y], [x, y], [x, 1], [0, 1]]), poly([[0, y], [d, 0], [1, 0], [x, y]]), poly([[x, y], [1, 0], [1, 1 - d], [x, 1]])]; };
+  const cuboid = () => [poly([[0, 0.35], [0.7, 0.35], [0.7, 1], [0, 1]]), poly([[0, 0.35], [0.3, 0], [1, 0], [0.7, 0.35]]), poly([[0.7, 0.35], [1, 0], [1, 0.65], [0.7, 1]])];
+  const cone = () => [{ closed: true, segs: [['M', 0, 0.88], ['L', 0.5, 0], ['L', 1, 0.88]].concat(arcSegs(0.5, 0.88, 0.5, 0.12, 0, Math.PI)) }, { closed: false, segs: [['M', 1, 0.88]].concat(arcSegs(0.5, 0.88, 0.5, 0.12, 0, -Math.PI)) }];
+  const sphere = () => [ell(0.5, 0.5, 0.5, 0.5), { closed: false, segs: [['M', 1, 0.5]].concat(arcSegs(0.5, 0.5, 0.5, 0.16, 0, Math.PI)) }, { closed: false, segs: [['M', 0, 0.5]].concat(arcSegs(0.5, 0.5, 0.5, 0.16, Math.PI, P2)) }];
+  const hemisphere = () => [{ closed: true, segs: [['M', 0, 0.7]].concat(arcSegs(0.5, 0.7, 0.5, 0.7, Math.PI, P2), arcSegs(0.5, 0.7, 0.5, 0.3, 0, Math.PI)) }, { closed: false, segs: [['M', 1, 0.7]].concat(arcSegs(0.5, 0.7, 0.5, 0.3, 0, -Math.PI)) }];
+  const pyramid = () => [poly([[0.45, 0], [0, 0.78], [0.55, 1], [1, 0.72]]), line([0.45, 0], [0.55, 1])];
+  const prism = () => [poly([[0, 1], [0.6, 1], [1, 0.7], [0.7, 0], [0.3, 0.3]]), poly([[0.3, 0.3], [0.6, 1]], false), poly([[0.6, 1], [0.7, 0]], false)];
+  const torus = () => [ell(0.5, 0.5, 0.5, 0.36), { closed: false, segs: [['M', 0.2, 0.5], ['C', 0.3, 0.68, 0.7, 0.68, 0.8, 0.5]] }, { closed: false, segs: [['M', 0.26, 0.55], ['C', 0.36, 0.4, 0.64, 0.4, 0.74, 0.55]] }];
+  const axes3d = () => [line([0.35, 0.7], [0.35, 0.03]), poly([[0.31, 0.14], [0.35, 0.02], [0.39, 0.14]], false), line([0.35, 0.7], [0.97, 0.7]), poly([[0.86, 0.66], [0.98, 0.7], [0.86, 0.74]], false), line([0.35, 0.7], [0.04, 0.97]), poly([[0.04, 0.85], [0.03, 0.98], [0.15, 0.95]], false)];
+  const rightBrace = () => ({ closed: false, segs: [['M', 0, 0], ['C', 0.4, 0, 0.5, 0.05, 0.5, 0.25], ['L', 0.5, 0.4], ['C', 0.5, 0.47, 0.6, 0.5, 1, 0.5], ['C', 0.6, 0.5, 0.5, 0.53, 0.5, 0.6], ['L', 0.5, 0.75], ['C', 0.5, 0.95, 0.4, 1, 0, 1]] });
+  const leftBrace = () => ({ closed: false, segs: [['M', 1, 0], ['C', 0.6, 0, 0.5, 0.05, 0.5, 0.25], ['L', 0.5, 0.4], ['C', 0.5, 0.47, 0.4, 0.5, 0, 0.5], ['C', 0.4, 0.5, 0.5, 0.53, 0.5, 0.6], ['L', 0.5, 0.75], ['C', 0.5, 0.95, 0.6, 1, 1, 1]] });
+  const circArrow = () => {
+    const s = Math.PI * 0.8, e = Math.PI * 2.1, R = 0.4, r = 0.24, M = 0.32, hw = 0.5, hi = 0.14, tipA = e + 0.5;
+    const o = arcPt(0.5, 0.5, R, R, s), ho = arcPt(0.5, 0.5, hw, hw, e), tip = arcPt(0.5, 0.5, M, M, tipA), hn = arcPt(0.5, 0.5, hi, hi, e), ie = arcPt(0.5, 0.5, r, r, e);
+    return [{ closed: true, segs: [['M', o[0], o[1]]].concat(arcSegs(0.5, 0.5, R, R, s, e), [['L', ho[0], ho[1]], ['L', tip[0], tip[1]], ['L', hn[0], hn[1]], ['L', ie[0], ie[1]]], arcSegs(0.5, 0.5, r, r, e, s)) }];
+  };
+  const resistorZ = () => [poly([[0, 0.5], [0.15, 0.5], [0.22, 0.1], [0.34, 0.9], [0.46, 0.1], [0.58, 0.9], [0.7, 0.1], [0.78, 0.5], [1, 0.5]], false)];
+  const coil = () => [{ closed: false, segs: [['M', 0, 0.7], ['L', 0.1, 0.7]].concat([0, 1, 2, 3].map((i) => ['C', 0.1 + i * 0.2, 0.0, 0.3 + i * 0.2, 0.0, 0.3 + i * 0.2, 0.7]), [['L', 1, 0.7]]) }];
+
   const LIB = [
     // id, name, category, default size in px (40 px = 1 cm), builder
     ['diamond', 'Diamond', 'Basic', 120, 80, () => [diamond()]],
@@ -76,12 +109,51 @@
     ['cloud', 'Cloud', 'Basic', 140, 100, () => [cloud()]],
     ['cylinder', 'Cylinder', 'Basic', 80, 100, cylinder],
     ['callout', 'Speech bubble', 'Basic', 140, 100, () => [poly([[0, 0], [1, 0], [1, 0.75], [0.45, 0.75], [0.25, 1], [0.3, 0.75], [0, 0.75]])]],
+    ['heart', 'Heart', 'Basic', 100, 90, () => [{ closed: true, segs: [['M', 0.5, 1], ['C', 0.1, 0.7, 0, 0.45, 0, 0.28], ['C', 0, 0.1, 0.15, 0, 0.28, 0], ['C', 0.4, 0, 0.48, 0.08, 0.5, 0.2], ['C', 0.52, 0.08, 0.6, 0, 0.72, 0], ['C', 0.85, 0, 1, 0.1, 1, 0.28], ['C', 1, 0.45, 0.9, 0.7, 0.5, 1]] }]],
+    ['moon', 'Crescent', 'Basic', 70, 100, () => [{ closed: true, segs: [['M', 0.65, 0], ['C', 0.25, 0, 0, 0.25, 0, 0.5], ['C', 0, 0.75, 0.25, 1, 0.65, 1], ['C', 0.4, 0.8, 0.4, 0.2, 0.65, 0]] }]],
+    ['bolt', 'Lightning', 'Basic', 70, 100, () => [poly([[0.55, 0], [0.15, 0.55], [0.45, 0.55], [0.3, 1], [0.85, 0.4], [0.55, 0.4], [0.75, 0]])]],
+    ['sun', 'Sun', 'Basic', 100, 100, () => [ell(0.5, 0.5, 0.22, 0.22)].concat(Array.from({ length: 8 }, (_, i) => { const a = (i * Math.PI) / 4, c = Math.cos(a), s = Math.sin(a); return line([0.5 + 0.32 * c, 0.5 + 0.32 * s], [0.5 + 0.5 * c, 0.5 + 0.5 * s]); }))],
+    ['donut', 'Ring', 'Basic', 100, 100, () => ring(0.5, 0.28)],
+    ['pie', 'Pie', 'Basic', 100, 100, () => [{ closed: true, segs: [['M', 0.5, 0.5], ['L', 1, 0.5]].concat(arcSegs(0.5, 0.5, 0.5, 0.5, 0, Math.PI * 1.5)) }]],
+    ['heptagon', 'Heptagon', 'Basic', 100, 100, () => [regular(7, -Math.PI / 2)]],
+    ['decagon', 'Decagon', 'Basic', 100, 100, () => [regular(10, -Math.PI / 2)]],
+    ['star4', 'Star (4)', 'Basic', 100, 100, () => [starN(4, 0.4)]],
+    ['star6', 'Star (6)', 'Basic', 100, 100, () => [starN(6, 0.55)]],
+    ['star8', 'Star (8)', 'Basic', 100, 100, () => [starN(8, 0.7)]],
+    ['frame', 'Frame', 'Basic', 120, 90, () => [poly([[0, 0], [1, 0], [1, 1], [0, 1]]), poly([[0.14, 0.16], [0.14, 0.84], [0.86, 0.84], [0.86, 0.16]])]],
+    ['lshape', 'L-shape', 'Basic', 100, 100, () => [poly([[0, 0], [0.4, 0], [0.4, 0.6], [1, 0.6], [1, 1], [0, 1]])]],
+    ['check', 'Check mark', 'Basic', 80, 80, () => [poly([[0, 0.55], [0.15, 0.4], [0.38, 0.65], [0.85, 0.05], [1, 0.2], [0.38, 0.95]])]],
+    ['xmark', 'Cross mark', 'Basic', 80, 80, () => [poly([[0.2, 0], [0.5, 0.3], [0.8, 0], [1, 0.2], [0.7, 0.5], [1, 0.8], [0.8, 1], [0.5, 0.7], [0.2, 1], [0, 0.8], [0.3, 0.5], [0, 0.2]])]],
+    ['smiley', 'Smiley', 'Basic', 90, 90, () => [ell(0.5, 0.5, 0.5, 0.5), ell(0.33, 0.38, 0.05, 0.07), ell(0.67, 0.38, 0.05, 0.07), { closed: false, segs: [['M', 0.25, 0.62], ['C', 0.35, 0.86, 0.65, 0.86, 0.75, 0.62]] }]],
+    ['prohibit', 'Prohibited', 'Basic', 90, 90, () => [ell(0.5, 0.5, 0.5, 0.5), line([0.15, 0.15], [0.85, 0.85])]],
+    ['rbrace', 'Brace }', 'Basic', 40, 120, () => [rightBrace()]],
+    ['lbrace', 'Brace {', 'Basic', 40, 120, () => [leftBrace()]],
+    ['bracket', 'Bracket [', 'Basic', 40, 120, () => [poly([[1, 0], [0, 0], [0, 1], [1, 1]], false)]],
+    ['rbracket', 'Bracket ]', 'Basic', 40, 120, () => [poly([[0, 0], [1, 0], [1, 1], [0, 1]], false)]],
+    ['cube', 'Cube', '3D', 100, 100, () => cube()],
+    ['cuboid', 'Cuboid / box', '3D', 140, 100, cuboid],
+    ['cyl3d', 'Cylinder', '3D', 80, 110, cylinder],
+    ['cone3d', 'Cone', '3D', 90, 110, cone],
+    ['sphere', 'Sphere', '3D', 100, 100, sphere],
+    ['hemisphere', 'Hemisphere', '3D', 110, 80, hemisphere],
+    ['pyramid', 'Pyramid', '3D', 110, 100, pyramid],
+    ['prism', 'Triangular prism', '3D', 130, 100, prism],
+    ['torus', 'Torus', '3D', 130, 90, torus],
+    ['axes3d', '3D axes', '3D', 110, 110, axes3d],
     ['arrowR', 'Arrow right', 'Arrows', 140, 60, () => [poly([[0, 0.25], [0.6, 0.25], [0.6, 0], [1, 0.5], [0.6, 1], [0.6, 0.75], [0, 0.75]])]],
     ['arrowL', 'Arrow left', 'Arrows', 140, 60, () => [poly([[1, 0.25], [0.4, 0.25], [0.4, 0], [0, 0.5], [0.4, 1], [0.4, 0.75], [1, 0.75]])]],
     ['arrowU', 'Arrow up', 'Arrows', 60, 140, () => [poly([[0.25, 1], [0.25, 0.4], [0, 0.4], [0.5, 0], [1, 0.4], [0.75, 0.4], [0.75, 1]])]],
     ['arrowD', 'Arrow down', 'Arrows', 60, 140, () => [poly([[0.25, 0], [0.25, 0.6], [0, 0.6], [0.5, 1], [1, 0.6], [0.75, 0.6], [0.75, 0]])]],
     ['darrowH', 'Double arrow', 'Arrows', 160, 60, () => [poly([[0, 0.5], [0.2, 0], [0.2, 0.3], [0.8, 0.3], [0.8, 0], [1, 0.5], [0.8, 1], [0.8, 0.7], [0.2, 0.7], [0.2, 1]])]],
     ['chevron', 'Chevron', 'Arrows', 120, 60, () => [poly([[0, 0], [0.7, 0], [1, 0.5], [0.7, 1], [0, 1], [0.3, 0.5]])]],
+    ['homeplate', 'Pentagon arrow', 'Arrows', 140, 60, () => [poly([[0, 0], [0.7, 0], [1, 0.5], [0.7, 1], [0, 1]])]],
+    ['darrowV', 'Double arrow (vertical)', 'Arrows', 60, 160, () => [poly([[0.5, 0], [1, 0.2], [0.7, 0.2], [0.7, 0.8], [1, 0.8], [0.5, 1], [0, 0.8], [0.3, 0.8], [0.3, 0.2], [0, 0.2]])]],
+    ['arrow4', 'Four-way arrow', 'Arrows', 110, 110, () => [poly([[0.5, 0], [0.7, 0.2], [0.58, 0.2], [0.58, 0.42], [0.8, 0.42], [0.8, 0.3], [1, 0.5], [0.8, 0.7], [0.8, 0.58], [0.58, 0.58], [0.58, 0.8], [0.7, 0.8], [0.5, 1], [0.3, 0.8], [0.42, 0.8], [0.42, 0.58], [0.2, 0.58], [0.2, 0.7], [0, 0.5], [0.2, 0.3], [0.2, 0.42], [0.42, 0.42], [0.42, 0.2], [0.3, 0.2]])]],
+    ['elbowArrow', 'Elbow arrow', 'Arrows', 110, 100, () => [poly([[0, 1], [0, 0.25], [0.62, 0.25], [0.62, 0], [1, 0.375], [0.62, 0.75], [0.62, 0.5], [0.25, 0.5], [0.25, 1]])]],
+    ['circArrow', 'Circular arrow', 'Arrows', 100, 100, circArrow],
+    ['notchArrow', 'Notched arrow', 'Arrows', 140, 60, () => [poly([[0, 0.25], [0.6, 0.25], [0.6, 0], [1, 0.5], [0.6, 1], [0.6, 0.75], [0, 0.75], [0.15, 0.5]])]],
+    ['stripeArrow', 'Striped arrow', 'Arrows', 140, 60, () => [poly([[0.3, 0.25], [0.6, 0.25], [0.6, 0], [1, 0.5], [0.6, 1], [0.6, 0.75], [0.3, 0.75]]), poly([[0, 0.25], [0.1, 0.25], [0.1, 0.75], [0, 0.75]]), poly([[0.15, 0.25], [0.25, 0.25], [0.25, 0.75], [0.15, 0.75]])]],
+    ['calloutArrow', 'Arrow callout', 'Arrows', 140, 70, () => [poly([[0, 0], [0.55, 0], [0.55, 0.2], [0.75, 0.2], [0.75, 0], [1, 0.5], [0.75, 1], [0.75, 0.8], [0.55, 0.8], [0.55, 1], [0, 1]])]],
     ['process', 'Process', 'Flowchart', 120, 60, () => [rect()]],
     ['decision', 'Decision', 'Flowchart', 120, 80, () => [diamond()]],
     ['terminator', 'Start / End', 'Flowchart', 120, 60, () => [rrect()]],
@@ -91,15 +163,43 @@
     ['preparation', 'Preparation', 'Flowchart', 120, 60, () => [hexagon()]],
     ['connector', 'Connector', 'Flowchart', 40, 40, () => [ell(0.5, 0.5, 0.5, 0.5)]],
     ['database', 'Database', 'Flowchart', 80, 100, cylinder],
+    ['manual', 'Manual input', 'Flowchart', 120, 60, () => [poly([[0, 0.2], [1, 0], [1, 1], [0, 1]])]],
+    ['delay', 'Delay', 'Flowchart', 120, 60, () => [{ closed: true, segs: [['M', 0, 0], ['L', 0.55, 0], ['C', 0.55 + K * 0.45, 0, 1, 0.5 - K * 0.5, 1, 0.5], ['C', 1, 0.5 + K * 0.5, 0.55 + K * 0.45, 1, 0.55, 1], ['L', 0, 1]] }]],
+    ['merge', 'Merge', 'Flowchart', 80, 70, () => [poly([[0, 0], [1, 0], [0.5, 1]])]],
+    ['extract', 'Extract', 'Flowchart', 80, 70, () => [poly([[0.5, 0], [1, 1], [0, 1]])]],
+    ['sort', 'Sort', 'Flowchart', 80, 80, () => [diamond(), line([0, 0.5], [1, 0.5])]],
+    ['sumjunction', 'Summing junction', 'Flowchart', 60, 60, () => [ell(0.5, 0.5, 0.5, 0.5), line([0.15, 0.15], [0.85, 0.85]), line([0.85, 0.15], [0.15, 0.85])]],
+    ['orjunction', 'Or junction', 'Flowchart', 60, 60, () => [ell(0.5, 0.5, 0.5, 0.5), line([0.5, 0], [0.5, 1]), line([0, 0.5], [1, 0.5])]],
+    ['offpage', 'Off-page connector', 'Flowchart', 60, 70, () => [poly([[0, 0], [1, 0], [1, 0.65], [0.5, 1], [0, 0.65]])]],
+    ['display', 'Display', 'Flowchart', 120, 60, () => [{ closed: true, segs: [['M', 0, 0.5], ['L', 0.18, 0], ['L', 0.8, 0], ['C', 0.8 + K * 0.2, 0, 1, 0.5 - K * 0.5, 1, 0.5], ['C', 1, 0.5 + K * 0.5, 0.8 + K * 0.2, 1, 0.8, 1], ['L', 0.18, 1]] }]],
+    ['storeddata', 'Stored data', 'Flowchart', 120, 60, () => [{ closed: true, segs: [['M', 0.12, 0], ['L', 1, 0], ['C', 0.9, 0.25, 0.9, 0.75, 1, 1], ['L', 0.12, 1], ['C', 0.02, 0.75, 0.02, 0.25, 0.12, 0]] }]],
     ['actor', 'Actor', 'Diagram / UML', 60, 120, () => [ell(0.5, 0.12, 0.22, 0.11), line([0.5, 0.23], [0.5, 0.62]), line([0.12, 0.38], [0.88, 0.38]), line([0.5, 0.62], [0.12, 1]), line([0.5, 0.62], [0.88, 1])]],
     ['umlclass', 'Class box', 'Diagram / UML', 140, 120, () => [rect(), line([0, 0.3], [1, 0.3]), line([0, 0.65], [1, 0.65])]],
     ['note', 'Note', 'Diagram / UML', 120, 80, () => [poly([[0, 0], [0.78, 0], [1, 0.22], [1, 1], [0, 1]]), poly([[0.78, 0], [0.78, 0.22], [1, 0.22]], false)]],
     ['package', 'Package', 'Diagram / UML', 140, 100, () => [poly([[0, 0], [0.4, 0], [0.4, 0.15], [1, 0.15], [1, 1], [0, 1]])]],
+    ['usecase', 'Use case', 'Diagram / UML', 140, 70, () => [ell(0.5, 0.5, 0.5, 0.5)]],
+    ['finalstate', 'Final state', 'Diagram / UML', 50, 50, () => [ell(0.5, 0.5, 0.5, 0.5), ell(0.5, 0.5, 0.28, 0.28)]],
+    ['component', 'Component', 'Diagram / UML', 140, 90, () => [poly([[0.08, 0], [1, 0], [1, 1], [0.08, 1]]), poly([[0, 0.2], [0.16, 0.2], [0.16, 0.4], [0, 0.4]]), poly([[0, 0.6], [0.16, 0.6], [0.16, 0.8], [0, 0.8]])]],
+    ['interface', 'Interface (lollipop)', 'Diagram / UML', 80, 40, () => [line([0, 0.5], [0.5, 0.5]), ell(0.75, 0.5, 0.25, 0.5)]],
+    ['lifeline', 'Lifeline', 'Diagram / UML', 90, 150, () => [poly([[0, 0], [1, 0], [1, 0.16], [0, 0.16]]), line([0.5, 0.16], [0.5, 1])]],
     ['and', 'AND gate', 'Logic gates', 120, 80, () => gate(andBody(), [[[0, 0.3], [0.2, 0.3]], [[0, 0.7], [0.2, 0.7]], [[0.76, 0.5], [1, 0.5]]])],
     ['or', 'OR gate', 'Logic gates', 120, 80, () => gate(orBody(), [[[0, 0.3], [0.29, 0.3]], [[0, 0.7], [0.29, 0.7]], [[0.82, 0.5], [1, 0.5]]])],
     ['not', 'NOT gate', 'Logic gates', 120, 60, () => gate([poly([[0.2, 0.05], [0.2, 0.95], [0.72, 0.5]])], [[[0, 0.5], [0.2, 0.5]], [[0.82, 0.5], [1, 0.5]]], [0.77, 0.05])],
     ['nand', 'NAND gate', 'Logic gates', 120, 80, () => gate(andBody(), [[[0, 0.3], [0.2, 0.3]], [[0, 0.7], [0.2, 0.7]], [[0.82, 0.5], [1, 0.5]]], [0.79, 0.04])],
     ['nor', 'NOR gate', 'Logic gates', 120, 80, () => gate(orBody(), [[[0, 0.3], [0.29, 0.3]], [[0, 0.7], [0.29, 0.7]], [[0.87, 0.5], [1, 0.5]]], [0.845, 0.035])],
+    ['xor', 'XOR gate', 'Logic gates', 120, 80, () => gate(orBody().concat([{ closed: false, segs: [['M', 0.13, 0], ['C', 0.25, 0.3, 0.25, 0.7, 0.13, 1]] }]), [[[0, 0.3], [0.22, 0.3]], [[0, 0.7], [0.22, 0.7]], [[0.82, 0.5], [1, 0.5]]])],
+    ['xnor', 'XNOR gate', 'Logic gates', 120, 80, () => gate(orBody().concat([{ closed: false, segs: [['M', 0.13, 0], ['C', 0.25, 0.3, 0.25, 0.7, 0.13, 1]] }]), [[[0, 0.3], [0.22, 0.3]], [[0, 0.7], [0.22, 0.7]], [[0.87, 0.5], [1, 0.5]]], [0.845, 0.035])],
+    ['buffer', 'Buffer', 'Logic gates', 120, 60, () => gate([poly([[0.2, 0.05], [0.2, 0.95], [0.82, 0.5]])], [[[0, 0.5], [0.2, 0.5]], [[0.82, 0.5], [1, 0.5]]])],
+    ['resistor', 'Resistor', 'Electronics', 120, 40, () => [line([0, 0.5], [0.2, 0.5]), poly([[0.2, 0.1], [0.8, 0.1], [0.8, 0.9], [0.2, 0.9]]), line([0.8, 0.5], [1, 0.5])]],
+    ['resistorz', 'Resistor (zigzag)', 'Electronics', 120, 40, resistorZ],
+    ['capacitor', 'Capacitor', 'Electronics', 80, 60, () => [line([0, 0.5], [0.42, 0.5]), line([0.42, 0.05], [0.42, 0.95]), line([0.58, 0.05], [0.58, 0.95]), line([0.58, 0.5], [1, 0.5])]],
+    ['inductor', 'Inductor', 'Electronics', 140, 40, coil],
+    ['battery', 'Battery', 'Electronics', 80, 60, () => [line([0, 0.5], [0.4, 0.5]), line([0.4, 0.05], [0.4, 0.95]), line([0.6, 0.25], [0.6, 0.75]), line([0.6, 0.5], [1, 0.5])]],
+    ['diode', 'Diode', 'Electronics', 100, 50, () => [line([0, 0.5], [0.25, 0.5]), poly([[0.25, 0.1], [0.25, 0.9], [0.7, 0.5]]), line([0.7, 0.1], [0.7, 0.9]), line([0.7, 0.5], [1, 0.5])]],
+    ['lamp', 'Lamp', 'Electronics', 90, 50, () => [line([0, 0.5], [0.2, 0.5]), ell(0.5, 0.5, 0.3, 0.5), line([0.29, 0.15], [0.71, 0.85]), line([0.71, 0.15], [0.29, 0.85]), line([0.8, 0.5], [1, 0.5])]],
+    ['source', 'Voltage source', 'Electronics', 90, 50, () => [line([0, 0.5], [0.2, 0.5]), ell(0.5, 0.5, 0.3, 0.5), line([0.8, 0.5], [1, 0.5])]],
+    ['switch', 'Switch', 'Electronics', 100, 40, () => [line([0, 0.8], [0.25, 0.8]), line([0.25, 0.8], [0.78, 0.15]), line([0.75, 0.8], [1, 0.8])]],
+    ['ground', 'Ground', 'Electronics', 50, 50, () => [line([0.5, 0], [0.5, 0.4]), line([0, 0.4], [1, 0.4]), line([0.2, 0.7], [0.8, 0.7]), line([0.4, 1], [0.6, 1])]],
   ].map(([id, name, cat, w, h, build]) => ({ id, name, cat, w, h, build }));
 
   const BY_ID = {}; LIB.forEach((l) => (BY_ID[l.id] = l));
