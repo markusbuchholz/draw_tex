@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   let G = 20; const U = 40; // grid (default 0.5 cm), 40 px = 1 cm
-  const MARGIN = 2 * U; // 2 cm page margin
+  let MARGIN = 2 * U; // page margin (px), set from the Margin option
   const $ = (id) => document.getElementById(id);
   const cv = $('c'), ctx = cv.getContext('2d');
   const CSS = { black: '#1d1d1d', red: '#e03131', blue: '#1971c2', 'green!50!black': '#2b8a3e', orange: '#f08c00', purple: '#9c36b5', gray: '#868e96' };
@@ -11,13 +11,13 @@
   const S = {
     pages: [{ shapes: [] }], cur: 0, sels: [], view: { x: 0, y: 0, z: 1 }, tool: 'pen',
     style: { route: 'straight', bend: 30, color: 'black', dashed: false, fill: false, fillOp: 0.3, arrow: '', lw: 1, rounded: false, size: 1 },
-    opts: { snap: true, autofix: true, full: true, landscape: false },
+    opts: { snap: true, autofix: true, full: true, landscape: false, fmt: 'A4', margin: 2, showGrid: true },
   };
   Object.defineProperty(S, 'shapes', { get() { return this.pages[this.cur].shapes; }, set(v) { this.pages[this.cur].shapes = v; } });
   let undo = [], redo = [], drag = null, draft = null, ghost = null, marquee = null, space = false, editing = null, nextId = 1, W = 0, H = 0, dpr = 1;
 
   /* ---------- page geometry (world px; (0,0) = top-left of text area) ---------- */
-  const page = () => (S.opts.landscape ? { w: 29.7 * U, h: 21 * U } : { w: 21 * U, h: 29.7 * U });
+  const page = () => { const f = Tikz.FORMATS[S.opts.fmt] || Tikz.FORMATS.A4; return S.opts.landscape ? { w: f[1] * U, h: f[0] * U } : { w: f[0] * U, h: f[1] * U }; };
   const area = () => { const p = page(); return { x: 0, y: 0, w: p.w - 2 * MARGIN, h: p.h - 2 * MARGIN }; };
 
   /* ---------- coordinates ---------- */
@@ -111,12 +111,12 @@
     if (undo.length > 200) undo.shift();
     changed();
   }
-  const texOpts = () => ({ full: S.opts.full, landscape: S.opts.landscape });
+  const texOpts = () => ({ full: S.opts.full, landscape: S.opts.landscape, format: S.opts.fmt, margin: S.opts.margin });
   const snapshot = () => JSON.stringify({ pages: S.pages, cur: S.cur });
-  const texCode = (full) => Tikz.generate(null, { full, landscape: S.opts.landscape, pages: S.pages.map((p) => p.shapes) });
+  const texCode = (full) => Tikz.generate(null, Object.assign(texOpts(), { full, pages: S.pages.map((p) => p.shapes) }));
   function changedLive() { $('code').value = texCode(S.opts.full); render(); }
   function changed() {
-    try { localStorage.setItem('draw_tex_v3', JSON.stringify({ pages: S.pages, cur: S.cur, landscape: S.opts.landscape })); } catch (e) {}
+    try { localStorage.setItem('draw_tex_v3', JSON.stringify({ pages: S.pages, cur: S.cur, landscape: S.opts.landscape, fmt: S.opts.fmt, margin: S.opts.margin, showGrid: S.opts.showGrid })); } catch (e) {}
     $('code').value = texCode(S.opts.full);
     refreshPageStatus(); scheduleCompile(); syncUI(); render();
   }
@@ -324,7 +324,7 @@
     if (first) fitPage(); else render();
   }
   function fitPage() {
-    const p = page(), z = Math.max(0.2, Math.min(2, Math.min((W - 40) / p.w, (H - 40) / p.h)));
+    const p = page(), z = Math.max(0.02, Math.min(2, Math.min((W - 40) / p.w, (H - 40) / p.h)));
     S.view = { z, x: (W - p.w * z) / 2 + MARGIN * z, y: (H - p.h * z) / 2 + MARGIN * z }; render();
   }
   window.addEventListener('resize', resize);
@@ -403,9 +403,9 @@
     ctx.fillRect(-MARGIN, -MARGIN, pg.w, pg.h); ctx.restore();
     ctx.setLineDash([6, 5]); ctx.lineWidth = 1 / z; ctx.strokeStyle = '#8fb3d9'; ctx.strokeRect(0, 0, ar.w, ar.h); ctx.setLineDash([]);
     ctx.fillStyle = '#9aa'; ctx.font = `${11 / z}px system-ui`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
-    ctx.fillText(`A4 ${S.opts.landscape ? 'landscape' : 'portrait'} · text area ${(ar.w / U).toFixed(0)}×${(ar.h / U).toFixed(1)} cm`, 0, -6 / z);
+    ctx.fillText(`${S.opts.fmt} ${S.opts.landscape ? 'landscape' : 'portrait'} · text area ${+(ar.w / U).toFixed(1)}×${+(ar.h / U).toFixed(1)} cm`, 0, -6 / z);
     // grid dots on page
-    if (G * z >= 5) {
+    if (S.opts.showGrid && G * z >= 5) {
       ctx.fillStyle = '#c9c9c4';
       const a0 = s2w({ x: 0, y: 0 }), b = s2w({ x: W, y: H });
       const x1 = Math.max(-MARGIN, Math.floor(a0.x / G) * G), y1 = Math.max(-MARGIN, Math.floor(a0.y / G) * G);
@@ -579,7 +579,7 @@
     else { S.view.y -= e.deltaY; render(); }
   }, { passive: false });
   function zoomAt(sp, f) {
-    const z = Math.max(0.2, Math.min(4, S.view.z * f)), k = z / S.view.z;
+    const z = Math.max(0.02, Math.min(4, S.view.z * f)), k = z / S.view.z;
     S.view.x = sp.x - (sp.x - S.view.x) * k; S.view.y = sp.y - (sp.y - S.view.y) * k; S.view.z = z; render();
   }
   $('zin').onclick = () => zoomAt({ x: W / 2, y: H / 2 }, 1.25);
@@ -675,7 +675,11 @@
   $('optSnap').onchange = (e) => (S.opts.snap = e.target.checked);
   $('optFull').onchange = (e) => { S.opts.full = e.target.checked; changed(); };
   $('optGrid').onchange = (e) => { G = +e.target.value; try { localStorage.setItem('draw_tex_grid', G); } catch (x) {} render(); };
+  Object.keys(Tikz.FORMATS).forEach((k) => { const o = document.createElement('option'); o.value = k; o.textContent = k; $('optFmt').appendChild(o); });
+  $('optFmt').onchange = (e) => { S.opts.fmt = e.target.value; fitPage(); changed(); };
   $('optOri').onchange = (e) => { S.opts.landscape = e.target.value === 'l'; fitPage(); changed(); };
+  $('optMargin').onchange = (e) => { S.opts.margin = +e.target.value; MARGIN = S.opts.margin * U; fitPage(); changed(); };
+  $('optShowGrid').onchange = (e) => { S.opts.showGrid = e.target.checked; try { localStorage.setItem('draw_tex_v3', JSON.stringify({ pages: S.pages, cur: S.cur, landscape: S.opts.landscape, fmt: S.opts.fmt, margin: S.opts.margin, showGrid: S.opts.showGrid })); } catch (x) {} render(); };
   $('clear').onclick = () => { if (!S.shapes.length || confirm('Clear this page?')) { S.shapes = []; S.sels = []; commit(); } };
   $('tidy').onclick = () => {
     const o = { grid: G, snap: true };
@@ -714,7 +718,7 @@
   };
   function scheduleCompile() { clearTimeout(ctimer); if ($('optAuto').checked) ctimer = setTimeout(compileNow, 700); }
   async function compileNow() {
-    if (!S.pages.some((p) => p.shapes.length)) { $('pdfstatus').textContent = 'Draw something first'; return; }
+    if (!S.pages.some((p) => p.shapes.length)) { cseq++; $('pdfpages').innerHTML = ''; $('pdflog').style.display = 'none'; $('pdfstatus').textContent = 'All pages are empty'; return; }
     const my = ++cseq; $('pdfstatus').textContent = 'Compiling…';
     try {
       const r = await fetch('/compile?format=png', { method: 'POST', body: texCode(true) });
@@ -740,10 +744,12 @@
     if (!saved) { const old = JSON.parse(localStorage.getItem('draw_tex_v2') || 'null'); if (old && Array.isArray(old.shapes)) saved = { pages: [{ shapes: old.shapes }], cur: 0, landscape: old.landscape }; }
     if (saved && Array.isArray(saved.pages) && saved.pages.length) {
       S.pages = saved.pages; S.cur = Math.min(saved.cur || 0, S.pages.length - 1); S.opts.landscape = !!saved.landscape; $('optOri').value = S.opts.landscape ? 'l' : 'p';
+      if (Tikz.FORMATS[saved.fmt]) S.opts.fmt = saved.fmt; if (saved.margin !== undefined) S.opts.margin = +saved.margin; S.opts.showGrid = saved.showGrid !== false;
       S.pages.forEach((p) => p.shapes.forEach((s) => { nextId = Math.max(nextId, (s.id || 0) + 1); if (s.type === 'line' && s.arrow === true) s.arrow = '->'; }));
     }
   } catch (e) {}
   try { const g = +localStorage.getItem('draw_tex_grid'); if (g) { G = g; $('optGrid').value = String(g); } } catch (e) {}
+  MARGIN = S.opts.margin * U; $('optFmt').value = S.opts.fmt; $('optMargin').value = String(S.opts.margin); $('optShowGrid').checked = S.opts.showGrid;
   undo = [snapshot()];
   setTool('pen'); resize(); changed();
 })();

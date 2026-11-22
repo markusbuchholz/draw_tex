@@ -82,25 +82,27 @@
   }
 
   // A4 text area (2 cm margins) in cm
-  const PAGE = { portrait: { w: 17, h: 25.7 }, landscape: { w: 25.7, h: 17 } };
+  // paper formats in cm (portrait: width x height)
+  const FORMATS = { A0: [84.1, 118.9], A1: [59.4, 84.1], A2: [42, 59.4], A3: [29.7, 42], A4: [21, 29.7], A5: [14.8, 21], A6: [10.5, 14.8], Letter: [21.59, 27.94] };
+  function pageSize(o) { const f = FORMATS[o.format] || FORMATS.A4, m = o.margin === undefined ? 2 : o.margin, w = o.landscape ? f[1] : f[0], h = o.landscape ? f[0] : f[1]; return { pw: w, ph: h, w: w - 2 * m, h: h - 2 * m, m }; }
   const SIZES = [null, null, '\\large', '\\Large', '\\huge'];
   SIZES[0] = '\\small';
 
   // shapes: array of shapes (one page) – or pass o.pages = [shapes, shapes, ...] for several pages
   function generate(shapes, o) {
-    o = Object.assign({ full: true, landscape: false }, o || {});
-    const pg = o.landscape ? PAGE.landscape : PAGE.portrait;
+    o = Object.assign({ full: true, landscape: false, format: 'A4', margin: 2 }, o || {});
+    const pg = pageSize(o);
     const pages = o.pages || [shapes || []];
-    const box = o.full ? `  \\useasboundingbox (0,0) rectangle (${pg.w},${fmt(-(pg.h - 0.1))});\n` : '';
+    const box = o.full ? `  \\useasboundingbox (0,0) rectangle (${fmt(pg.w)},${fmt(-(pg.h - 0.1))});\n` : '';
     const pics = pages.map((sh) => {
       const body = sh.length ? sh.map((s) => '  ' + shapeToTikz(s)).join('\n') : '  % (empty page)';
       return `\\begin{tikzpicture}[>={Stealth[length=2.5mm]}, semithick]\n${box}${body}\n\\end{tikzpicture}`;
     });
     if (!o.full) return '% (0,0) = top-left corner of the text area; 1 unit = 1 cm\n' + pics.map((p, i) => (i ? `\\newpage\n% ---- page ${i + 1} ----\n` : '') + p).join('\n');
     return [
-      '\\documentclass[a4paper]{article}',
+      '\\documentclass{article}',
       '\\usepackage[utf8]{inputenc}',
-      `\\usepackage[a4paper,${o.landscape ? 'landscape,' : ''}margin=2cm]{geometry}`,
+      `\\usepackage[paperwidth=${fmt(pg.pw)}cm,paperheight=${fmt(pg.ph)}cm,margin=${fmt(pg.m)}cm]{geometry}`,
       '\\usepackage{tikz}',
       '\\usetikzlibrary{arrows.meta}',
       '\\pagestyle{empty}',
@@ -113,7 +115,7 @@
     ].join('\n');
   }
 
-  const api = { generate, shapeToTikz, UNIT, PAGE };
+  const api = { generate, shapeToTikz, UNIT, FORMATS, pageSize };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Tikz = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -18,7 +18,7 @@ function compile(tex, png, cb) {
         cb(err && !pdf ? extra : { pdf: out });
       };
       if (pdf && png) {
-        return execFile('pdftoppm', ['-png', '-r', '200', 'drawing.pdf', 'page'], { cwd: dir, timeout: 60000 }, () => {
+        return execFile('pdftoppm', ['-png', '-scale-to-x', '1600', '-scale-to-y', '-1', 'drawing.pdf', 'page'], { cwd: dir, timeout: 60000 }, () => {
           const files = fs.readdirSync(dir).filter((f) => /^page-\d+\.png$/.test(f)).sort((a, b) => parseInt(a.slice(5)) - parseInt(b.slice(5)));
           const pages = files.map((f) => 'data:image/png;base64,' + fs.readFileSync(path.join(dir, f)).toString('base64'));
           fs.rm(dir, { recursive: true, force: true }, () => {});
