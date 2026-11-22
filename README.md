@@ -1,6 +1,7 @@
 # draw_tex
 
-<img width="2775" height="1221" alt="image" src="https://github.com/user-attachments/assets/84cffae9-be3b-4f91-bf2b-f07357a51cb6" />
+<img width="2775" height="1221" alt="image" src="https://github.com/user-attachments/assets/fd123d4e-2f3e-4f05-9036-1c9ef7e22c9d" />
+
 
 
 A simple application for drawing diagrams on a canvas and converting them to TikZ code for LaTeX/Overleaf.
