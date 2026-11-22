@@ -705,7 +705,7 @@
     $('ovlform').submit();
   };
 
-  /* ---------- PDF compile (needs: node server.js) ---------- */
+  /* ---------- PDF compile (needs: node run_server.js) ---------- */
   let ctimer = null, cseq = 0;
   $('compile').onclick = compileNow;
   const applyZoom = () => document.querySelectorAll('#pdfpages img').forEach((i) => (i.style.width = $('pzoom').value + '%'));
@@ -724,16 +724,16 @@
       const r = await fetch('/compile?format=png', { method: 'POST', body: texCode(true) });
       if (my !== cseq) return;
       if (r.ok && !(r.headers.get('content-type') || '').includes('application/json')) {
-        $('pdflog').textContent = 'The server is outdated. Stop it (Ctrl+C) and start it again with:  node server.js'; $('pdflog').style.display = 'block'; $('pdfstatus').textContent = 'Restart server'; return;
+        $('pdflog').textContent = 'The server is outdated. Stop it (Ctrl+C) and start it again with:  node run_server.js'; $('pdflog').style.display = 'block'; $('pdfstatus').textContent = 'Restart server'; return;
       }
       if (r.ok) {
         const data = await r.json(), box = $('pdfpages'); box.innerHTML = '';
         data.pages.forEach((src) => { const im = document.createElement('img'); im.src = src; box.appendChild(im); });
         applyZoom();
         $('pdflog').style.display = 'none'; $('pdfstatus').textContent = 'Compiled ✓ (' + data.pages.length + (data.pages.length === 1 ? ' page)' : ' pages)');
-      } else { $('pdflog').textContent = (r.status === 404 || r.status === 501 ? 'Wrong server: stop it and run  node server.js  in the project folder, then open http://localhost:8000\n' : '') + await r.text(); $('pdflog').style.display = 'block'; $('pdfstatus').textContent = 'LaTeX error'; }
+      } else { $('pdflog').textContent = (r.status === 404 || r.status === 501 ? 'Wrong server: stop it and run  node run_server.js  in the project folder, then open http://localhost:8000\n' : '') + await r.text(); $('pdflog').style.display = 'block'; $('pdfstatus').textContent = 'LaTeX error'; }
     } catch (e) {
-      $('pdflog').textContent = 'Compile server not reachable.\nStart it in the project folder with:  node server.js\nand open http://localhost:8000 (not the file directly).';
+      $('pdflog').textContent = 'Compile server not reachable.\nStart it in the project folder with:  node run_server.js\nand open http://localhost:8000 (not the file directly).';
       $('pdflog').style.display = 'block'; $('pdfstatus').textContent = 'No server';
     }
   }

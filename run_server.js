@@ -1,5 +1,5 @@
 // Tiny local server: serves the app and compiles LaTeX -> PDF with pdflatex.
-// Usage: node server.js   (then open http://localhost:8000)
+// Usage: node run_server.js   (then open http://localhost:8000)
 const http = require('http'), fs = require('fs'), path = require('path'), os = require('os');
 const { execFile } = require('child_process');
 const PORT = +process.env.PORT || 8000, ROOT = __dirname;
