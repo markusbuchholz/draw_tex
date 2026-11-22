@@ -65,3 +65,10 @@ canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;displa
 #about{position:fixed;inset:0;background:#0005;z-index:30;align-items:center;justify-content:center}
 .aboutbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 28px;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 8px 30px #0006;text-align:center}
 .aboutbox b{font-size:20px}.aboutbox button{margin-top:10px}
+
+.libgroups{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.libgroup{min-width:0;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:8px;text-align:left;height:auto}
+.libgroup .pv{display:flex;gap:2px}
+.libgroup canvas{position:static;inset:auto;display:block;touch-action:auto;background:#fff;border-radius:4px;width:38px;height:26px}
+.libgroup .gn{font-weight:600}.libgroup .gc{font-size:11px;color:var(--mut)}
+.libback{margin-bottom:2px;padding:3px 10px}

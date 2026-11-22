@@ -630,27 +630,46 @@
     Shapes.paths(s).forEach((sp) => { sp.segs.forEach((g) => (g[0] === 'M' ? c.moveTo(g[1], g[2]) : g[0] === 'L' ? c.lineTo(g[1], g[2]) : c.bezierCurveTo(g[1], g[2], g[3], g[4], g[5], g[6]))); if (sp.closed) c.closePath(); });
     c.stroke(); return cvs;
   }
+  let libCat = null; // null = show the list of groups
+  function libItems(items, body) {
+    const g = document.createElement('div'); g.className = 'libgrid'; body.appendChild(g);
+    items.forEach((def) => {
+      const b = document.createElement('button'); b.className = 'libitem'; b.title = def.name + ' – click, then click or drag on the canvas';
+      b.appendChild(thumb(def)); b.appendChild(document.createTextNode(def.name));
+      b.onclick = () => { S.libKind = def.id; closeLib(); setTool('lib'); };
+      g.appendChild(b);
+    });
+  }
   function buildLib(q) {
-    const body = $('libbody'); body.innerHTML = ''; q = (q || '').toLowerCase();
-    Shapes.CATS.forEach((cat) => {
-      const items = Shapes.LIB.filter((l) => l.cat === cat && (!q || l.name.toLowerCase().includes(q) || cat.toLowerCase().includes(q)));
-      if (!items.length) return;
-      const t = document.createElement('div'); t.className = 'libcat'; t.textContent = cat; body.appendChild(t);
-      const g = document.createElement('div'); g.className = 'libgrid'; body.appendChild(g);
-      items.forEach((def) => {
-        const b = document.createElement('button'); b.className = 'libitem'; b.title = def.name + ' – click, then click or drag on the canvas';
-        b.appendChild(thumb(def)); b.appendChild(document.createTextNode(def.name));
-        b.onclick = () => { S.libKind = def.id; closeLib(); setTool('lib'); };
+    const body = $('libbody'); body.innerHTML = ''; q = (q || '').trim().toLowerCase();
+    if (q) { // search: matching shapes from all groups
+      Shapes.CATS.forEach((cat) => {
+        const items = Shapes.LIB.filter((l) => l.cat === cat && (l.name.toLowerCase().includes(q) || cat.toLowerCase().includes(q)));
+        if (!items.length) return;
+        const t = document.createElement('div'); t.className = 'libcat'; t.textContent = cat; body.appendChild(t); libItems(items, body);
+      });
+      if (!body.children.length) body.textContent = 'No shapes found.';
+    } else if (libCat) { // one group
+      const back = document.createElement('button'); back.className = 'libback'; back.textContent = '‹ All groups'; back.onclick = () => { libCat = null; buildLib(''); }; body.appendChild(back);
+      const t = document.createElement('div'); t.className = 'libcat'; t.textContent = libCat; body.appendChild(t);
+      libItems(Shapes.LIB.filter((l) => l.cat === libCat), body);
+    } else { // the groups
+      const g = document.createElement('div'); g.className = 'libgroups'; body.appendChild(g);
+      Shapes.CATS.forEach((cat) => {
+        const items = Shapes.LIB.filter((l) => l.cat === cat), b = document.createElement('button'); b.className = 'libgroup'; b.title = 'Open ' + cat;
+        const pv = document.createElement('div'); pv.className = 'pv'; items.slice(0, 3).forEach((d) => pv.appendChild(thumb(d))); b.appendChild(pv);
+        const n = document.createElement('div'); n.className = 'gn'; n.textContent = cat; b.appendChild(n);
+        const c = document.createElement('div'); c.className = 'gc'; c.textContent = items.length + ' shapes'; b.appendChild(c);
+        b.onclick = () => { libCat = cat; buildLib(''); $('lib').scrollTop = 0; };
         g.appendChild(b);
       });
-    });
-    if (!body.children.length) body.textContent = 'No shapes found.';
+    }
   }
   function closeLib() { $('lib').style.display = 'none'; }
   function toggleLib(force) {
     const open = force === true || $('lib').style.display === 'none';
     if (!open) { closeLib(); return; }
-    buildLib(''); $('libq').value = ''; $('lib').style.display = 'block'; $('libq').focus();
+    libCat = null; buildLib(''); $('libq').value = ''; $('lib').style.display = 'block'; $('libq').focus();
   }
   $('libq').oninput = (e) => buildLib(e.target.value);
   $('libq').addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLib(); e.stopPropagation(); });
