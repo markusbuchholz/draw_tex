@@ -43,4 +43,4 @@ http.createServer((req, res) => {
   const p = path.join(ROOT, path.normalize(f));
   if (!p.startsWith(ROOT) || !TYPES[path.extname(p)] || !fs.existsSync(p)) { res.writeHead(404); return res.end('not found'); }
   res.writeHead(200, { 'Content-Type': TYPES[path.extname(p)], 'Cache-Control': 'no-store' }); fs.createReadStream(p).pipe(res);
-}).listen(PORT, '127.0.0.1', () => console.log(`Sketch→TikZ running at http://localhost:${PORT}`));
+}).listen(PORT, '127.0.0.1', () => console.log(`DrawTEX running at http://localhost:${PORT}`));

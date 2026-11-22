@@ -17,6 +17,9 @@
       .replace(/\^/g, '\\textasciicircum{}');
   }
 
+  // multi-line text -> lines separated by \\ (needs align=center)
+  const txt = (s) => String(s.text).split('\n').map(esc).join(' \\\\ ');
+  const multi = (s) => String(s.text).includes('\n');
   const LW = { 1: null, 2: 'thick', 3: 'ultra thick' };
 
   function opts(s, extra) {
@@ -64,18 +67,18 @@
         const o = opts(s, fillOpt(s)); if (s.rot) o.push(rotOpt(s, boxC(s)));
         let out = `\\draw${wrap(o)} ${Shapes.tikz(s, P)};`;
         if (s.text) {
-          const to = []; if (s.rot) to.push(`rotate=${fmt(-s.rot)}`);
+          const to = []; if (multi(s)) to.push('align=center'); if (s.rot) to.push(`rotate=${fmt(-s.rot)}`);
           if (s.color && s.color !== 'black') to.push(`text=${s.color}`);
           if (s.size !== undefined && s.size !== 1 && SIZES[s.size]) to.push(`font=${SIZES[s.size]}`);
-          out += `\n  \\node${wrap(to)} at ${P({ x: s.x + s.w / 2, y: s.y + s.h / 2 })} {${esc(s.text)}};`;
+          out += `\n  \\node${wrap(to)} at ${P({ x: s.x + s.w / 2, y: s.y + s.h / 2 })} {${txt(s)}};`;
         }
         return out;
       }
       case 'text': {
-        const o = []; if (s.rot) o.push(`rotate=${fmt(-s.rot)}`);
+        const o = []; if (multi(s)) o.push('align=center'); if (s.rot) o.push(`rotate=${fmt(-s.rot)}`);
         if (s.color && s.color !== 'black') o.push(`text=${s.color}`);
         if (s.size !== undefined && s.size !== 1 && SIZES[s.size]) o.push(`font=${SIZES[s.size]}`);
-        return `\\node${wrap(o)} at ${P(s)} {${esc(s.text)}};`;
+        return `\\node${wrap(o)} at ${P(s)} {${txt(s)}};`;
       }
     }
     return '';

@@ -33,12 +33,13 @@
   const TOOLS = [
     ['select', '↖', 'Select & move – click/drag an element, or drag a box around several (V). Alt+drag = box select'], ['pen', '✎', 'Pen – draw freehand, auto-fixed (P)'], ['line', '╱', 'Line (L)'],
     ['arrow', '➜', 'Arrow (A)'], ['carrow', '↷', 'Curved arrow (C)'], ['earrow', '⮣', 'Elbow arrow (W)'], ['rect', '▭', 'Rectangle (R)'], ['ellipse', '◯', 'Ellipse / circle (O)'], ['lib', '⊞', 'Shape library: flowchart, arrows, UML, logic gates … (G)'],
-    ['text', 'T', 'Text (T) – click empty space to add, drag a label to move it, click it to edit'], ['eraser', '⌫', 'Eraser (E)'], ['hand', '✋', 'Pan (H or hold Space)'],
+    ['text', 'T', 'Text (T) – click empty space to add, drag a label to move it, click it to edit'], ['eraser', '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><g transform="rotate(-45 12 12)"><rect x="4" y="8" width="16" height="8" rx="2"/><rect x="11" y="8" width="9" height="8" rx="2" fill="currentColor" fill-opacity=".3"/><path d="M11 8v8"/></g><path d="M4 22h16"/></svg>', 'Eraser (E)'], ['hand', '✋', 'Pan (H or hold Space)'],
   ];
   const KEYS = { v: 'select', p: 'pen', l: 'line', a: 'arrow', c: 'carrow', w: 'earrow', r: 'rect', o: 'ellipse', g: 'lib', t: 'text', e: 'eraser', h: 'hand' };
   TOOLS.forEach(([id, icon, title]) => {
     const b = document.createElement('button');
-    b.textContent = icon; b.title = title; b.dataset.tool = id; b.onclick = () => (id === 'lib' ? toggleLib() : setTool(id));
+    if (icon.startsWith('<svg')) b.innerHTML = icon; else b.textContent = icon;
+    b.title = title; b.dataset.tool = id; b.onclick = () => (id === 'lib' ? toggleLib() : setTool(id));
     $('tools').appendChild(b);
   });
   function setTool(t) {
@@ -66,7 +67,8 @@
   $('sBend').oninput = (e) => setStyle('bend', +e.target.value);
   $('sArrow').onchange = (e) => setStyle('arrow', e.target.value);
   $('sSize').onchange = (e) => setStyle('size', +e.target.value);
-  $('sText').oninput = () => { const s = sel1(); if (s && (s.type === 'text' || s.type === 'lib')) { s.text = $('sText').value || (s.type === 'text' ? ' ' : ''); changedLive(); } };
+  $('sText').onkeydown = (e) => e.stopPropagation();
+  $('sText').oninput = () => { $('sText').rows = Math.min(6, Math.max(2, $('sText').value.split('\n').length)); const s = sel1(); if (s && (s.type === 'text' || s.type === 'lib')) { s.text = $('sText').value || (s.type === 'text' ? ' ' : ''); changedLive(); } };
   $('sText').onchange = () => { const s = sel1(); if (s && s.type === 'text' && !$('sText').value.trim()) remove([s]); else if (s) commit(); };
   $('rL').onclick = () => rotateSel(-90); $('rR').onclick = () => rotateSel(90);
   const setRot = (v) => { const s = sel1(); if (!s || isPts(s) || v === '' || isNaN(+v)) return false; let r = ((+v % 360) + 360) % 360; if (r > 180) r -= 360; s.rot = r; return true; };
@@ -101,6 +103,7 @@
     $('ititle').textContent = n === 0 ? 'Style for new elements' : n === 1 ? 'Selected: ' + (S.sels[0].type === 'lib' ? Shapes.BY_ID[S.sels[0].kind].name : { line: 'line', rect: 'rectangle', ellipse: 'ellipse', poly: 'polygon', curve: 'curve', text: 'text' }[S.sels[0].type]) : n + ' elements selected';
     const t = sel1(); $('textrow').style.display = t && (t.type === 'text' || t.type === 'lib') ? '' : 'none';
     if (t && (t.type === 'text' || t.type === 'lib') && document.activeElement !== $('sText')) $('sText').value = t.text || '';
+    $('sText').rows = Math.min(6, Math.max(2, String($('sText').value).split('\n').length));
     $('selrow').style.display = n ? '' : 'none'; $('rotrow').style.display = n ? '' : 'none';
     const rs = sel1(); $('sRot').disabled = !(rs && !isPts(rs)); if (document.activeElement !== $('sRot')) $('sRot').value = rs && !isPts(rs) ? Math.round(rs.rot || 0) : '';
   }
@@ -191,7 +194,10 @@
     if (shape.type === 'lib') shape.size = st.size;
     return shape;
   }
-  function textSize(s) { ctx.font = fontOf(s); return { w: ctx.measureText(s.text).width + 8, h: FSIZE[s.size === undefined ? 1 : s.size] + 8 }; }
+  const lineH = (s) => FSIZE[s.size === undefined ? 1 : s.size] * 1.25;
+  function textSize(s) { ctx.font = fontOf(s); const L = String(s.text).split('\n'); return { w: Math.max(...L.map((l) => ctx.measureText(l).width)) + 8, h: lineH(s) * (L.length - 1) + FSIZE[s.size === undefined ? 1 : s.size] + 8 }; }
+  // draws (possibly multi-line) text centred on (x, y)
+  function fillLines(c, s, text, x, y) { const L = String(text).split('\n'), lh = lineH(s); c.textAlign = 'center'; c.textBaseline = 'middle'; L.forEach((l, i) => c.fillText(l, x, y + (i - (L.length - 1) / 2) * lh)); }
   // path of a line/arrow in world px: straight, elbow or bezier ("bend left/right" like TikZ)
   function bendCtrl(s) {
     const [a, b] = s.pts, th = ((s.bend || 30) * Math.PI) / 180 * (s.route === 'bendL' ? 1 : -1);
@@ -384,12 +390,12 @@
           if (sp.closed) c.closePath();
         });
         fillIt(); c.stroke();
-        if (s.text) { c.setLineDash([]); c.fillStyle = col; c.font = fontOf(s); c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(s.text, s.x + s.w / 2, s.y + s.h / 2); }
+        if (s.text) { c.setLineDash([]); c.fillStyle = col; c.font = fontOf(s); fillLines(c, s, s.text, s.x + s.w / 2, s.y + s.h / 2); }
         return;
       case 'ellipse': c.ellipse(s.x + s.w / 2, s.y + s.h / 2, s.w / 2, s.h / 2, 0, 0, Math.PI * 2); fillIt(); c.stroke(); return;
       case 'poly': s.pts.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y))); if (s.closed) c.closePath(); fillIt(); c.stroke(); return;
       case 'curve': curvePath(c, s.pts, s.closed); fillIt(); c.stroke(); return;
-      case 'text': c.font = fontOf(s); c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(s.text, s.x, s.y); return;
+      case 'text': c.font = fontOf(s); fillLines(c, s, s.text, s.x, s.y); return;
     }
   }
 
@@ -594,8 +600,9 @@
     t.style.display = 'block'; t.style.left = q.x + 'px'; t.style.top = q.y + 'px';
     t.value = shape ? shape.text || '' : ''; t.style.fontSize = FSIZE[shape && shape.size !== undefined ? shape.size : S.style.size] * S.view.z + 'px';
     if (shape && shape.type === 'text') shape._hidden = true;
-    render(); setTimeout(() => t.focus(), 0);
+    fitTextin(); render(); setTimeout(() => t.focus(), 0);
   }
+  function fitTextin() { const t = $('textin'), L = t.value.split('\n'); t.rows = L.length; t.cols = Math.max(10, ...L.map((l) => l.length + 1)); t.style.lineHeight = '1.25'; }
   function commitText(finish) {
     if (!editing) return;
     const t = $('textin'), v = t.value.trim(), { shape, pos } = editing;
@@ -607,10 +614,11 @@
     } else if (v) { const s = mk({ type: 'text', x: pos.x, y: pos.y, text: v }); S.shapes.push(s); commit(); if (finish === true) { setTool('select'); S.sels = [s]; syncUI(); render(); } }
   }
   $('textin').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); commitText(true); }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); commitText(true); }
     if (e.key === 'Escape') { const s = editing && editing.shape; if (s) delete s._hidden; editing = null; $('textin').style.display = 'none'; render(); }
     e.stopPropagation();
   });
+  $('textin').addEventListener('input', fitTextin);
   $('textin').addEventListener('blur', commitText);
 
   /* ---------- shape library flyout ---------- */
@@ -737,6 +745,14 @@
       $('pdflog').style.display = 'block'; $('pdfstatus').textContent = 'No server';
     }
   }
+
+  /* ---------- about ---------- */
+  const about = (v) => { $('about').style.display = v ? 'flex' : 'none'; };
+  $('brand').onclick = () => about(true);
+  $('brand').onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') about(true); };
+  $('aboutok').onclick = () => about(false);
+  $('about').addEventListener('mousedown', (e) => { if (e.target === $('about')) about(false); });
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') about(false); });
 
   /* ---------- init ---------- */
   try {

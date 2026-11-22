@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sketch to TikZ</title>
+<title>DrawTEX</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="app">
   <header>
-    <b class="brand">Sketch → TikZ</b>
+    <b class="brand" id="brand" title="About" role="button" tabindex="0">DrawTEX</b>
     <label class="chk" title="Straighten lines, turn rough boxes/circles into exact shapes"><input type="checkbox" id="optFix" checked> Auto-fix shapes</label>
     <label class="chk" title="Snap everything to a 0.5 cm grid"><input type="checkbox" id="optSnap" checked> Snap to grid</label>
     <label class="chk">Grid <select id="optGrid"><option value="2">0.05 cm</option><option value="4">0.1 cm</option><option value="10">0.25 cm</option><option value="20" selected>0.5 cm</option><option value="40">1 cm</option><option value="80">2 cm</option></select></label>
@@ -50,7 +50,7 @@
         <label class="chk">Arrow <select id="sArrow"><option value="">none</option><option value="->">end →</option><option value="<-">start ←</option><option value="<->">both ↔</option></select></label>
         <label class="chk">Text <select id="sSize"><option value="0">small</option><option value="1">normal</option><option value="2">large</option><option value="3">Large</option><option value="4">huge</option></select></label>
       </div>
-      <div class="row" id="textrow"><input id="sText" type="text" placeholder="label text" spellcheck="false"></div>
+      <div class="row" id="textrow"><textarea id="sText" rows="2" placeholder="label text (Enter = new line)" spellcheck="false"></textarea></div>
       <div class="row" id="rotrow"><span class="ititle">Rotate</span><button id="rL" title="Rotate 90° counter-clockwise ( Shift+[ )">⟲ 90°</button><button id="rR" title="Rotate 90° clockwise ( Shift+] )">⟳ 90°</button><label class="chk"><input type="number" id="sRot" step="1" style="width:62px" title="Angle in degrees (clockwise). Drag the round handle above the selection, or use [ and ] for 15° steps"> °</label></div>
       <div class="row" id="selrow">
         <button id="bDup" title="Duplicate (Ctrl+D)">Duplicate</button>
@@ -60,7 +60,7 @@
       </div>
     </div>
     <div id="lib" style="display:none"><input id="libq" type="text" placeholder="Search shapes…" spellcheck="false"><div id="libbody"></div></div>
-    <input id="textin" type="text" autocomplete="off" spellcheck="false">
+    <textarea id="textin" rows="1" autocomplete="off" spellcheck="false" title="Enter = new line, Ctrl+Enter or click outside = done"></textarea>
   </main>
 
   <section id="out">
@@ -84,6 +84,7 @@
     </div>
   </section>
 </div>
+<div id="about" style="display:none"><div class="aboutbox"><b>DrawTEX</b><div>Version 1.0.0</div><div>by Markus Buchholz</div><button id="aboutok" class="primary">OK</button></div></div>
 <form id="ovlform" action="https://www.overleaf.com/docs" method="post" target="_blank" style="display:none">
   <input type="hidden" name="encoded_snip" id="ovlsnip">
 </form>
