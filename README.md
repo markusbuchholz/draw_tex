@@ -11,7 +11,7 @@ It includes many features known from modern sketching tools: hand-drawn sketches
 
 ## Install
 
-On Ubuntu you will need to install
+On Ubuntu you will need to install ```TEX``` packages,
 
 ```bash
 sudo apt install texlive-pictures texlive-latex-base
