@@ -9,6 +9,14 @@ A simple application for drawing diagrams on a canvas and converting them to Tik
 
 It includes many features known from modern sketching tools: hand-drawn sketches are cleaned up into exact shapes, and the TikZ code and a PDF preview update live.
 
+## Install
+
+On Ubuntu you will need to install
+
+```bash
+sudo apt install texlive-pictures texlive-latex-base
+```
+
 ## Run
 
 ```bash
